@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Brain Break — Memory & Reflex Games</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #10131d;
+      --card: #1b2030;
+      --muted: #aab2c5;
+      --text: #f4f6fb;
+      --accent: #9c8cff;
+      --good: #53dca3;
+      --bad: #ff6b7a;
+    }
+
+    * { box-sizing: border-box; }
+
+    /* Stop double-tap zoom and tap highlight so fast taps register on phones. */
+    button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 36px 18px;
+      background:
+        radial-gradient(ellipse at top, #252546 0%, transparent 55%),
+        var(--bg);
+      color: var(--text);
+      font: 16px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    main { max-width: 960px; margin: 0 auto; }
+
+    header { text-align: center; margin-bottom: 30px; }
+    h1 { margin: 0 0 8px; font-size: clamp(2rem, 5vw, 3rem); }
+    header p { margin: 0; color: var(--muted); }
+
+    .games {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      padding: 24px;
+      border: 1px solid #343a50;
+      border-radius: 20px;
+      background: color-mix(in srgb, var(--card) 94%, transparent);
+      box-shadow: 0 16px 40px #0003;
+    }
+
+    .card h2 { margin: 0 0 4px; }
+    .description { min-height: 48px; margin: 0 0 20px; color: var(--muted); }
+
+    .stats {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: #111522;
+    }
+
+    .stats span { color: var(--muted); }
+    .stats strong { color: var(--text); }
+
+    button {
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+    }
+
+    .primary {
+      width: 100%;
+      padding: 12px 16px;
+      border: 0;
+      border-radius: 12px;
+      background: var(--accent);
+      color: #17142a;
+      font-weight: 750;
+      transition: transform 120ms ease, filter 120ms ease;
+    }
+
+    .primary:hover { filter: brightness(1.1); }
+    .primary:active { transform: scale(.98); }
+    button:focus-visible { outline: 3px solid white; outline-offset: 3px; }
+
+    .message {
+      min-height: 28px;
+      margin: 12px 0;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    /* Sequence Memory */
+    .board {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      max-width: 290px;
+      margin: 18px auto;
+    }
+
+    .pad {
+      aspect-ratio: 1;
+      border: 3px solid #ffffff20;
+      border-radius: 20px;
+      opacity: .76;
+      transition: opacity 120ms ease, transform 120ms ease, filter 120ms ease;
+    }
+
+    .pad:hover { opacity: .92; }
+    .pad:active { transform: scale(.96); }
+    .pad.lit { opacity: 1; filter: brightness(1.7); transform: scale(.96); }
+    .pad:disabled { cursor: default; }
+
+    .pad[data-pad="0"] { background: #ed5b68; }
+    .pad[data-pad="1"] { background: #3bc98c; }
+    .pad[data-pad="2"] { background: #4789f5; }
+    .pad[data-pad="3"] { background: #f4bd4f; }
+
+    /* Reaction Time */
+    .reaction-zone {
+      display: grid;
+      place-items: center;
+      width: 100%;
+      min-height: 220px;
+      margin: 18px 0;
+      padding: 24px;
+      border: 0;
+      border-radius: 18px;
+      background: #30384b;
+      color: white;
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: 700;
+      transition: background 150ms ease;
+    }
+
+    .reaction-zone.waiting { background: #b74955; }
+    .reaction-zone.ready { background: #159666; }
+    .reaction-zone.result { background: #353d53; }
+
+    .tips {
+      margin-top: 24px;
+      padding: 18px 22px;
+      border-radius: 16px;
+      background: #1b2030;
+      color: var(--muted);
+    }
+
+    .tips h2 { margin: 0 0 8px; color: var(--text); font-size: 1.1rem; }
+    .tips ul { margin: 0; padding-left: 20px; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Brain Break</h1>
+      <p>Two quick games for memory and reflexes. Take turns and see if you can beat your best.</p>
+    </header>
+
+    <section class="games" aria-label="Brain-training games">
+      <article class="card">
+        <h2>Sequence Memory</h2>
+        <p class="description">Watch the lights, then repeat the sequence. Each round adds one more step.</p>
+
+        <div class="stats" aria-live="polite">
+          <div><span>Round: </span><strong id="round">0</strong></div>
+          <div><span>Best: </span><strong id="memory-best">0</strong></div>
+        </div>
+
+        <div class="board" aria-label="Four colored memory buttons">
+          <button class="pad" data-pad="0" aria-label="Red" disabled></button>
+          <button class="pad" data-pad="1" aria-label="Green" disabled></button>
+          <button class="pad" data-pad="2" aria-label="Blue" disabled></button>
+          <button class="pad" data-pad="3" aria-label="Yellow" disabled></button>
+        </div>
+
+        <p class="message" id="memory-message" aria-live="polite">Press start when you're ready.</p>
+        <button class="primary" id="memory-start">Start game</button>
+      </article>
+
+      <article class="card">
+        <h2>Reaction Time</h2>
+        <p class="description">Wait for the green signal, then click as fast as you can. Clicking early is a false start!</p>
+
+        <div class="stats" aria-live="polite">
+          <div><span>Last: </span><strong id="last-time">—</strong></div>
+          <div><span>Best: </span><strong id="reaction-best">—</strong></div>
+        </div>
+
+        <button class="reaction-zone" id="reaction-zone" aria-live="polite">
+          Click here to start
+        </button>
+        <p class="message" id="reaction-message">A little patience makes for a better reaction.</p>
+      </article>
+    </section>
+
+    <aside class="tips">
+      <h2>More games to try</h2>
+      <ul>
+        <li><strong>Number Reverse:</strong> memorize a number, then repeat it backward.</li>
+        <li><strong>Focus Finder:</strong> pick out a target symbol from a grid of similar ones.</li>
+        <li><strong>Quick Math:</strong> solve short arithmetic problems before the timer runs out.</li>
+      </ul>
+    </aside>
+  </main>
+
+  <script>
+    // Sequence Memory
+    const pads = [...document.querySelectorAll(".pad")];
+    const startMemory = document.querySelector("#memory-start");
+    const roundLabel = document.querySelector("#round");
+    const memoryBestLabel = document.querySelector("#memory-best");
+    const memoryMessage = document.querySelector("#memory-message");
+
+    let sequence = [];
+    let playerStep = 0;
+    let memoryPlaying = false;
+    // Incremented on every (re)start so stale async playback from a previous game stops.
+    let gameId = 0;
+    let memoryBest = Number(localStorage.getItem("brain-memory-best") || 0);
+    memoryBestLabel.textContent = memoryBest;
+
+    const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+    function setPadsEnabled(enabled) {
+      pads.forEach(pad => pad.disabled = !enabled);
+    }
+
+    async function flashPad(index) {
+      pads[index].classList.add("lit");
+      await pause(360);
+      pads[index].classList.remove("lit");
+      await pause(150);
+    }
+
+    async function showSequence(id) {
+      memoryPlaying = false;
+      setPadsEnabled(false);
+      memoryMessage.textContent = "Watch the sequence…";
+      await pause(500);
+
+      for (const index of sequence) {
+        if (id !== gameId) return;
+        await flashPad(index);
+      }
+
+      if (id !== gameId) return;
+      memoryMessage.textContent = "Your turn!";
+      memoryPlaying = true;
+      setPadsEnabled(true);
+    }
+
+    function endMemoryGame() {
+      memoryPlaying = false;
+      setPadsEnabled(false);
+      const score = sequence.length - 1;
+      memoryMessage.textContent = `Game over — you reached round ${score}.`;
+      startMemory.textContent = "Play again";
+    }
+
+    startMemory.addEventListener("click", () => {
+      gameId += 1;
+      pads.forEach(pad => pad.classList.remove("lit"));
+      sequence = [Math.floor(Math.random() * pads.length)];
+      playerStep = 0;
+      roundLabel.textContent = "1";
+      startMemory.textContent = "Restart game";
+      showSequence(gameId);
+    });
+
+    pads.forEach(pad => {
+      pad.addEventListener("click", async () => {
+        if (!memoryPlaying) return;
+
+        const id = gameId;
+        const chosen = Number(pad.dataset.pad);
+        // Judge the press immediately so fast taps are checked in order.
+        const correct = chosen === sequence[playerStep];
+        playerStep += 1;
+        const roundDone = correct && playerStep === sequence.length;
+        if (!correct || roundDone) {
+          memoryPlaying = false;
+          setPadsEnabled(false);
+        }
+
+        await flashPad(chosen);
+        if (id !== gameId) return;
+
+        if (!correct) {
+          endMemoryGame();
+          return;
+        }
+
+        if (roundDone) {
+          if (sequence.length > memoryBest) {
+            memoryBest = sequence.length;
+            memoryBestLabel.textContent = memoryBest;
+            localStorage.setItem("brain-memory-best", String(memoryBest));
+          }
+
+          memoryMessage.textContent = "Nice! Get ready for the next round…";
+          await pause(650);
+          if (id !== gameId) return;
+          sequence.push(Math.floor(Math.random() * pads.length));
+          playerStep = 0;
+          roundLabel.textContent = String(sequence.length);
+          showSequence(id);
+        }
+      });
+    });
+
+    // Reaction Time
+    const reactionZone = document.querySelector("#reaction-zone");
+    const reactionMessage = document.querySelector("#reaction-message");
+    const lastTimeLabel = document.querySelector("#last-time");
+    const reactionBestLabel = document.querySelector("#reaction-best");
+
+    let reactionState = "idle";
+    let reactionTimer;
+    let readyAt = 0;
+    let reactionBest = Number(localStorage.getItem("brain-reaction-best") || 0);
+
+    if (reactionBest) reactionBestLabel.textContent = `${reactionBest} ms`;
+
+    // pointerdown fires earlier than click, giving more accurate timings.
+    reactionZone.addEventListener("pointerdown", handleReaction);
+    reactionZone.addEventListener("keydown", event => {
+      if ((event.key === "Enter" || event.key === " ") && !event.repeat) {
+        event.preventDefault();
+        handleReaction();
+      }
+    });
+
+    function handleReaction() {
+      if (reactionState === "idle" || reactionState === "result" || reactionState === "false-start") {
+        reactionState = "waiting";
+        reactionZone.className = "reaction-zone waiting";
+        reactionZone.textContent = "Wait for green…";
+        reactionMessage.textContent = "Don't click until the color changes.";
+        reactionTimer = setTimeout(() => {
+          reactionState = "ready";
+          readyAt = performance.now();
+          reactionZone.className = "reaction-zone ready";
+          reactionZone.textContent = "CLICK!";
+          reactionMessage.textContent = "Now!";
+        }, 1500 + Math.random() * 2500);
+        return;
+      }
+
+      if (reactionState === "waiting") {
+        clearTimeout(reactionTimer);
+        reactionState = "false-start";
+        reactionZone.className = "reaction-zone result";
+        reactionZone.textContent = "Too soon!";
+        reactionMessage.textContent = "Wait for green, then click to try again.";
+        return;
+      }
+
+      if (reactionState === "ready") {
+        const elapsed = Math.round(performance.now() - readyAt);
+        reactionState = "result";
+        reactionZone.className = "reaction-zone result";
+        reactionZone.textContent = `${elapsed} ms — click to try again`;
+        reactionMessage.textContent = "Great! Can you beat that?";
+        lastTimeLabel.textContent = `${elapsed} ms`;
+
+        if (!reactionBest || elapsed < reactionBest) {
+          reactionBest = elapsed;
+          reactionBestLabel.textContent = `${elapsed} ms`;
+          localStorage.setItem("brain-reaction-best", String(reactionBest));
+          reactionMessage.textContent = "New personal best!";
+        }
+      }
+    }
+  </script>
+</body>
+</html>
