@@ -2,7 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#10131d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Brain Break">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/logo.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <title>Brain Break — Memory & Reflex Games</title>
   <style>
     :root {
@@ -25,6 +33,12 @@
       margin: 0;
       min-height: 100vh;
       padding: 36px 18px;
+      /* Keep content clear of the notch and home bar when opened from the home screen. */
+      padding:
+        max(36px, env(safe-area-inset-top))
+        max(18px, env(safe-area-inset-right))
+        max(36px, env(safe-area-inset-bottom))
+        max(18px, env(safe-area-inset-left));
       background:
         radial-gradient(ellipse at top, #252546 0%, transparent 55%),
         var(--bg);
@@ -35,6 +49,7 @@
     main { max-width: 960px; margin: 0 auto; }
 
     header { text-align: center; margin-bottom: 30px; }
+    .logo { display: block; margin: 0 auto 12px; border-radius: 18px; box-shadow: 0 10px 30px #0006; }
     h1 { margin: 0 0 8px; font-size: clamp(2rem, 5vw, 3rem); }
     header p { margin: 0; color: var(--muted); }
 
@@ -160,6 +175,7 @@
 <body>
   <main>
     <header>
+      <img class="logo" src="icons/logo.svg" alt="" width="72" height="72">
       <h1>Brain Break</h1>
       <p>Two quick games for memory and reflexes. Take turns and see if you can beat your best.</p>
     </header>
@@ -378,6 +394,11 @@
           reactionMessage.textContent = "New personal best!";
         }
       }
+    }
+
+    // Offline support for the home screen app
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js");
     }
   </script>
 </body>
